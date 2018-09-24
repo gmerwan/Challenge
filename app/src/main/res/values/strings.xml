@@ -2,4 +2,5 @@
     <string name="app_name">Challenge</string>
     <string name="retry">Retry</string>
     <string name="place_mark_error">An error occurred while loading the place marks</string>
+    <string name="title_activity_maps">Map</string>
 </resources>

@@ -1,12 +1,8 @@
 package com.wunder.challenge.ui.placemark
 
 import android.arch.lifecycle.MutableLiveData
-import android.databinding.ObservableArrayList
-import android.databinding.ObservableList
 import android.util.Log
 import android.view.View
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.wunder.challenge.R
 import com.wunder.challenge.base.BaseViewModel
 import com.wunder.challenge.model.PlaceMark
@@ -22,6 +18,7 @@ class PlaceMarkListViewModel(private val placeMarkDao: PlaceMarkDao): BaseViewMo
     @Inject
     lateinit var placeMarkApi: PlaceMarkApi
     val placeMarkListAdapter: PlaceMarkListAdapter = PlaceMarkListAdapter()
+    lateinit var placeMarks: List<PlaceMark>
 
     val loadingVisibility: MutableLiveData<Int> = MutableLiveData()
     val errorMessage: MutableLiveData<Int> = MutableLiveData()
@@ -71,6 +68,7 @@ class PlaceMarkListViewModel(private val placeMarkDao: PlaceMarkDao): BaseViewMo
 
     private fun onRetrievePlaceMarkListSuccess(placeMarkList:List<PlaceMark>){
         placeMarkListAdapter.updatePlaceMarkList(placeMarkList)
+        placeMarks = placeMarkList
     }
 
     private fun onRetrievePlaceMarkListError(error: Throwable){
