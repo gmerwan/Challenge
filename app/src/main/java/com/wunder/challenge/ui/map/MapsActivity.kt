@@ -30,7 +30,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
 
     private val TAG = "MapsActivity"
 
-    private var postion: Int = 0
+    private var position: Int = 0
     private lateinit var googleMap: GoogleMap
     private lateinit var placeMarkListViewModel: PlaceMarkListViewModel
 
@@ -39,7 +39,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
         setContentView(R.layout.activity_maps)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        postion = intent.getIntExtra("position", 0)
+        position = intent.getIntExtra("position", 0)
 
         placeMarkListViewModel = ViewModelProviders.of(this, ViewModelFactory(this))
                 .get(PlaceMarkListViewModel::class.java)
@@ -65,11 +65,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
 
     override fun onMapLoaded() {
         Log.d(TAG, "onMapLoadedCallback")
-        showMarkers(placeMarkListViewModel.placeMarks)
+        val markerList: ArrayList<Marker> = showMarkers(placeMarkListViewModel.placeMarks)
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(markerList[position].position, 15.0f),
+                object : GoogleMap.CancelableCallback {
+                    override fun onFinish() {
+                        markerList[position].showInfoWindow()
+                    }
+
+                    override fun onCancel() {
+                    }
+                })
     }
 
     override fun onMarkerClick(marker: Marker?): Boolean {
-        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker?.position, 13.0f), object : GoogleMap.CancelableCallback {
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker?.position, 15.0f),
+                object : GoogleMap.CancelableCallback {
             override fun onFinish() {
                 marker?.showInfoWindow()
             }
@@ -84,12 +94,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
         val point = LatLng(placeMark.coordinates[0], placeMark.coordinates[1])
         val icon = BitmapDescriptorFactory.fromBitmap(getBitmap(R.drawable.ic_car))
         //snippet to distinguish markers within UiAutomator
-        return MarkerOptions().position(point).snippet("Car:${placeMark.name}").title(placeMark.name).icon(icon)
+        return MarkerOptions().position(point).title("Car:${placeMark.name}").icon(icon)
     }
 
-    private fun showMarkers(placeMarks: List<PlaceMark>) {
+    private fun showMarkers(placeMarks: List<PlaceMark>): ArrayList<Marker> {
         googleMap.clear()
         val builder = LatLngBounds.Builder()
+        val markerList: ArrayList<Marker> = arrayListOf()
         placeMarks.asSequence().map {
             Pair(it, googleMap.addMarker(constructMarkerOptions(it)))
         }.map {
@@ -97,8 +108,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
             it.second
         }.map {
             builder.include(it.position)
+            markerList.add(it)
         }.toList()
         googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 40))
+        return markerList
     }
 
     private fun getBitmap(drawableId: Int): Bitmap {

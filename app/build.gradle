@@ -58,7 +58,7 @@ dependencies {
     kapt "android.arch.persistence.room:compiler:$room_version"
 
     // Data binding
-    kapt "com.android.databinding:compiler:3.1.4"
+//    kapt "com.android.databinding:compiler:3.1.4"
 
     // Retrofit
     implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
