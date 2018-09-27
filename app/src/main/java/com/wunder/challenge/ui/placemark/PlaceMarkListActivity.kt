@@ -8,9 +8,13 @@ import android.support.annotation.StringRes
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
+import android.view.View
 import com.wunder.challenge.R
 import com.wunder.challenge.databinding.ActivityPlacemarkListBinding
 import com.wunder.challenge.injection.ViewModelFactory
+import com.wunder.challenge.ui.map.MapsActivity
+import org.jetbrains.anko.startActivity
 
 class PlaceMarkListActivity: AppCompatActivity() {
     private lateinit var binding: ActivityPlacemarkListBinding
@@ -22,6 +26,11 @@ class PlaceMarkListActivity: AppCompatActivity() {
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_placemark_list)
         binding.placemarkList.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        binding.placemarkList.addOnItemClickListener(object: OnItemClickListener {
+            override fun onItemClicked(position: Int, view: View) {
+                startActivity<MapsActivity>("position" to position)
+            }
+        })
 
         viewModel = ViewModelProviders.of(this, ViewModelFactory(this)).get(PlaceMarkListViewModel::class.java)
         viewModel.errorMessage.observe(this, Observer {
@@ -38,5 +47,24 @@ class PlaceMarkListActivity: AppCompatActivity() {
 
     private fun hideError(){
         errorSnackbar?.dismiss()
+    }
+
+    interface OnItemClickListener {
+        fun onItemClicked(position: Int, view: View)
+    }
+
+    fun RecyclerView.addOnItemClickListener(onClickListener: OnItemClickListener) {
+        this.addOnChildAttachStateChangeListener(object: RecyclerView.OnChildAttachStateChangeListener {
+            override fun onChildViewDetachedFromWindow(view: View) {
+                view.setOnClickListener(null)
+            }
+
+            override fun onChildViewAttachedToWindow(view: View) {
+                view.setOnClickListener {
+                    val holder = getChildViewHolder(view)
+                    onClickListener.onItemClicked(holder.adapterPosition, view)
+                }
+            }
+        })
     }
 }

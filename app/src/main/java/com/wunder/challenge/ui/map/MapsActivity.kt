@@ -1,7 +1,6 @@
 package com.wunder.challenge.ui.map
 
 import android.annotation.TargetApi
-import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -13,7 +12,6 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.util.Log
-import android.widget.Toast
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -21,25 +19,30 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.wunder.challenge.R
+import com.wunder.challenge.injection.ViewModelFactory
 import com.wunder.challenge.model.PlaceMark
 import com.wunder.challenge.ui.placemark.PlaceMarkListViewModel
-import javax.inject.Inject
+import android.view.MenuItem
+
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoadedCallback,
         GoogleMap.OnMarkerClickListener {
 
     private val TAG = "MapsActivity"
 
+    private var postion: Int = 0
     private lateinit var googleMap: GoogleMap
     private lateinit var placeMarkListViewModel: PlaceMarkListViewModel
-    @Inject
-    lateinit var viewModelFactory: ViewModelProvider.Factory
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        placeMarkListViewModel = ViewModelProviders.of(this, viewModelFactory).get(PlaceMarkListViewModel::class.java)
+        postion = intent.getIntExtra("position", 0)
+
+        placeMarkListViewModel = ViewModelProviders.of(this, ViewModelFactory(this))
+                .get(PlaceMarkListViewModel::class.java)
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager
@@ -47,15 +50,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
         mapFragment.getMapAsync(this)
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        when (item?.itemId) {
+            android.R.id.home -> onBackPressed()
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
     override fun onMapReady(googleMap: GoogleMap) {
         this.googleMap = googleMap
         this.googleMap.setOnMapLoadedCallback(this)
@@ -70,7 +71,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
     override fun onMarkerClick(marker: Marker?): Boolean {
         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker?.position, 13.0f), object : GoogleMap.CancelableCallback {
             override fun onFinish() {
-
+                marker?.showInfoWindow()
             }
 
             override fun onCancel() {
@@ -83,25 +84,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLoa
         val point = LatLng(placeMark.coordinates[0], placeMark.coordinates[1])
         val icon = BitmapDescriptorFactory.fromBitmap(getBitmap(R.drawable.ic_car))
         //snippet to distinguish markers within UiAutomator
-        return MarkerOptions().snippet("Car:${placeMark.name}").position(point).title(placeMark.name).icon(icon)
+        return MarkerOptions().position(point).snippet("Car:${placeMark.name}").title(placeMark.name).icon(icon)
     }
 
     private fun showMarkers(placeMarks: List<PlaceMark>) {
         googleMap.clear()
         val builder = LatLngBounds.Builder()
-        placeMarks.map {
+        placeMarks.asSequence().map {
             Pair(it, googleMap.addMarker(constructMarkerOptions(it)))
         }.map {
             it.second.tag = it.first
             it.second
         }.map {
             builder.include(it.position)
-        }
+        }.toList()
         googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 40))
-    }
-
-    private fun showErrorMessage(error: String) {
-        Toast.makeText(this, "Error: $error", Toast.LENGTH_LONG).show()
     }
 
     private fun getBitmap(drawableId: Int): Bitmap {
